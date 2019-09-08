@@ -2,8 +2,9 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const graphqlHttp = require('express-graphql')
 const { buildSchema } = require('graphql')
+const mongoose = require('mongoose')
 
-const MongoClient = require('mongodb').MongoClient
+const Timer = require('./models/timer')
 
 const app = express()
 
@@ -40,6 +41,7 @@ app.use('/graphql', graphqlHttp({
     
         type RootMutation{
             createTimer(timerInput: TimerInput): Timer
+            updateTimer(timerInput: TimerInput): Timer
         }
 
         schema{
@@ -48,24 +50,37 @@ app.use('/graphql', graphqlHttp({
         }
     `),
     rootValue: {
-        timers: () => {
-            return timers
-        },
-        createTimer(args){
-            const timer = {
+        timers: async () =>{
+
+           try {
+                const timers = await Timer.find();
+                return timers.map(timer => ({ ...timer._doc }));
+            }
+            catch (err) {
+                throw err;
+            }
+        }
+        ,
+        async createTimer(args){
+            const timer = new Timer({
                 title: args.timerInput.title,
                 category: args.timerInput.category,
                 time: 0,
                 runningSince: null
+            })
+
+            try {
+                const result = await timer.save();
+                return result;
+            }
+            catch (er) {
+                return console.log(er);
             }
 
             
-
-            return timer
         },
         updateTimer(args){
             const timer = {
-                _id: Date.now().toString(),
                 title: args.timerInput.title,
                 category: args.timerInput.category,
                 time: 0,
@@ -81,8 +96,12 @@ app.use('/graphql', graphqlHttp({
 }))
 
 
-const url = "mongodb://localhost:27017/"
-const dbName = "timers"
-const mongoClient = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(`${process.env.MONGO_URL}${process.env.MONGO_DB}`, {useNewUrlParser: true})
 
-mongoClient.connect();
+.then(()=>{})
+
+.catch(err=>{console.log(error)})
+
+
+
+app.listen(3001)

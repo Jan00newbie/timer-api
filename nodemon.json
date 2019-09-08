@@ -1,0 +1,8 @@
+{
+    "env":{
+        "MONGO_USER":"",
+        "MONGO_PASSWORD":"",
+        "MONGO_DB":"timers",
+        "MONGO_URL":"mongodb://localhost:27017/"
+    }
+}
