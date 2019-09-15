@@ -3,72 +3,15 @@ const bodyParser = require('body-parser')
 const graphqlHttp = require('express-graphql')
 const { buildSchema } = require('graphql')
 const mongoose = require('mongoose')
+const cors = require('cors')
 
 const Timer = require('./models/timer')
 
 const app = express()
 
-timers = [{
-        "id": 1,
-        "title": "Recruiting Manager",
-        "category": "n/a",
-        "time": "0",
-        runningSince: false
-    },
-    {
-        "id": 2,
-        "title": "Statistician I",
-        "category": "n/a",
-        "time": "0",
-        runningSince: null
-    },
-    {
-        "id": 3,
-        "title": "Administrative Officer",
-        "category": "Capital Goods",
-        "time": "0",
-        runningSince: null
-    },
-    {
-        "id": 4,
-        "title": "Analog Circuit Design manager",
-        "category": "n/a",
-        "time": "0",
-        runningSince: null
-    },
-    {
-        "id": 5,
-        "title": "Paralegal",
-        "category": "Health Care",
-        "time": "0",
-        runningSince: null
-    },
-    {
-        "id": 6,
-        "title": "Biostatistician III",
-        "category": "Consumer Services",
-        "time": "0",
-        runningSince: null
-    },
-    {
-        "id": 7,
-        "title": "Account Representative I",
-        "category": "Basic Industries",
-        "time": "0",
-        runningSince: null
-    },
-    {
-        "id": 8,
-        "title": "Sales Associate",
-        "category": "Consumer Services",
-        "time": "0",
-        runningSince: null
-    }
-];
-
 app.use(bodyParser.json())
 
-app.use('/graphql', graphqlHttp({
+app.use('/graphql', cors(), graphqlHttp({
     schema: buildSchema(`
 
         input TimerInput{
@@ -77,13 +20,13 @@ app.use('/graphql', graphqlHttp({
 
         input UpdateTimerInput{
             _id: String!
-            title: String
-            category: String
+            title: String!
+            category: String!
         }
 
         input CreateTimerInput{
             title: String!
-            category: String
+            category: String!
         }
 
         input SwitchTimerInput{
@@ -95,12 +38,11 @@ app.use('/graphql', graphqlHttp({
             _id: String!
         }
 
-
             type Timer{
                 _id: ID!
                 title: String!
-                category: String
-                time: Int
+                category: String!
+                time: Int!
                 runningSince: Int
             }
 
@@ -126,53 +68,40 @@ app.use('/graphql', graphqlHttp({
     `),
     rootValue: {
         timers: async () => {
+            const timers = await Timer
+                .find()
+                .catch(err =>{throw err})
 
-            try {
-                const timers = await Timer.find()
-                return timers.map(timer => ({ ...timer._doc }))
-            }
-            catch (err) {
-                throw err;
-            }
+            return timers.map(timer => ({ ...timer._doc }))
         },
+
         timer: async args => {
-            try {
-                return await Timer.findOne({_id: args.timerInput._id})
-            }
-            catch (err) {
-                throw err;
-            }
+            return await Timer
+                .findOne({_id: args.timerInput._id})
+                .catch(err =>{throw err})
         },
+
         createTimer: async args =>{
             const timer = new Timer({
-                title: args.timerInput.title,
-                category: args.timerInput.category,
+                title: args.createTimerInput.title,
+                category: args.createTimerInput.category,
                 time: 0,
                 runningSince: null
             })
 
-            try {
-                return await timer.save();
-            }
-            catch (err) {
-                throw err;
-            }
-
+            return await timer
+                .save()
+                .catch(err =>{throw err})
         },
+
         updateTimer: async args =>{
-        
             const id = args.updateTimerInput._id
 
             const update = {
-                $set:{}
-            }
-
-            if(args.updateTimerInput.title){
-                update.$set.title = args.updateTimerInput.title
-            }
-
-            if(args.updateTimerInput.category){
-                update.$set.category = args.updateTimerInput.category
+                $set:{
+                    title: args.updateTimerInput.title,
+                    category: args.updateTimerInput.category
+                }
             }
 
             const options = {
@@ -181,16 +110,14 @@ app.use('/graphql', graphqlHttp({
             }
 
             return await Timer.findByIdAndUpdate( id, update, options )
-                .then( result =>{
-                    console.log(result)
-                    return result
-                })
                 .catch( err =>{
                     throw err
                 })
-//
         },
         startTimer: async args => {
+                
+        },
+        stopTimer: async args => {
                 
         },
 
