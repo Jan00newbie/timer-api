@@ -9,6 +9,22 @@ const Timer = require('./models/timer')
 
 const app = express()
 
+
+const updateTimerHelper = async (id, args) => {
+
+    const update = {
+        $set: args
+    }
+
+    const options = {
+        new: true,
+        useFindAndModify:true
+    }
+
+    return await Timer.findByIdAndUpdate( id, update, options )
+        .catch( err =>{ throw err })
+}
+
 app.use(bodyParser.json())
 
 app.use('/graphql', cors(), graphqlHttp({
@@ -27,11 +43,6 @@ app.use('/graphql', cors(), graphqlHttp({
         input CreateTimerInput{
             title: String!
             category: String!
-        }
-
-        input SwitchTimerInput{
-            _id: String!
-            timeStamp: Int!
         }
 
         input DeleteTimerInput{
@@ -55,8 +66,8 @@ app.use('/graphql', cors(), graphqlHttp({
                 createTimer(createTimerInput: CreateTimerInput): Timer
                 deleteTimer(deleteTimerInput: DeleteTimerInput): Boolean
                 updateTimer(updateTimerInput: UpdateTimerInput): Timer
-                startTimer(switchTimerInput: SwitchTimerInput): Timer
-                stopTimer(switchTimerInput: SwitchTimerInput): Timer
+                startTimer(_id: String): Timer
+                stopTimer(_id: String): Timer
             }
 
 
@@ -70,8 +81,8 @@ app.use('/graphql', cors(), graphqlHttp({
         timers: async () => {
             const timers = await Timer
                 .find()
-                .catch(err =>{throw err})
-
+                .catch(err => {throw err} )
+console.log()
             return timers.map(timer => ({ ...timer._doc }))
         },
 
@@ -94,31 +105,28 @@ app.use('/graphql', cors(), graphqlHttp({
                 .catch(err =>{throw err})
         },
 
-        updateTimer: async args =>{
-            const id = args.updateTimerInput._id
+        updateTimer: async args => 
+            await updateTimerHelper(args.updateTimerInput._id, { 
+                title: args.updateTimerInput.title, 
+                category: args.updateTimerInput.category
+            })
+        ,
 
-            const update = {
-                $set:{
-                    title: args.updateTimerInput.title,
-                    category: args.updateTimerInput.category
-                }
-            }
+        startTimer: async args => 
+            await updateTimerHelper(args._id, { 
+                runningSince: Date.now()
+            })
+        ,
 
-            const options = {
-                new: true,
-                useFindAndModify:true
-            }
-
-            return await Timer.findByIdAndUpdate( id, update, options )
-                .catch( err =>{
-                    throw err
-                })
-        },
-        startTimer: async args => {
-                
-        },
         stopTimer: async args => {
-                
+            return Timer.findById(args._id)
+                .then( async foundTimer => {
+                    return await updateTimerHelper(args._id, {
+                        runningSince: null,
+                        time: foundTimer.time + (Date.now() - foundTimer.runningSince)
+                    })
+                })
+                .catch(err => {throw err})
         },
 
     },
@@ -127,8 +135,7 @@ app.use('/graphql', cors(), graphqlHttp({
 
 
 mongoose.connect(`${process.env.MONGO_URL}${process.env.MONGO_DB}`, {useNewUrlParser: true})
-.then(()=>{})
-.catch(error=>{console.log(error)})
+    .catch(error=>{throw error})
 
 
 

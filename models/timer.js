@@ -7,8 +7,14 @@ const timerSchema = new Schema({
         type: String,
         required: true
     },
-    category: String,
-    time: Number,
+    category: {
+        type: String,
+        required: true
+    },
+    time: {
+        type: Number,
+        required: true
+    },
     runningSince: Number
 })
 
