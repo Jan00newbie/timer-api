@@ -54,7 +54,7 @@ app.use('/graphql', cors(), graphqlHttp({
                 title: String!
                 category: String!
                 time: Int!
-                runningSince: Int
+                runningSince: Float
             }
 
             type RootQuery{
@@ -82,13 +82,13 @@ app.use('/graphql', cors(), graphqlHttp({
             const timers = await Timer
                 .find()
                 .catch(err => {throw err} )
-console.log()
+
             return timers.map(timer => ({ ...timer._doc }))
         },
 
         timer: async args => {
             return await Timer
-                .findOne({_id: args.timerInput._id})
+                .findOne({ _id: args.timerInput._id })
                 .catch(err =>{throw err})
         },
 
@@ -105,27 +105,27 @@ console.log()
                 .catch(err =>{throw err})
         },
 
-        updateTimer: async args => 
-            await updateTimerHelper(args.updateTimerInput._id, { 
+        updateTimer: async args => {
+            return await updateTimerHelper(args.updateTimerInput._id, { 
                 title: args.updateTimerInput.title, 
                 category: args.updateTimerInput.category
             })
-        ,
+        },
 
-        startTimer: async args => 
-            await updateTimerHelper(args._id, { 
+        startTimer: async args => {
+            return await updateTimerHelper(args._id, {
                 runningSince: Date.now()
             })
-        ,
+        },
 
         stopTimer: async args => {
             return Timer.findById(args._id)
-                .then( async foundTimer => {
-                    return await updateTimerHelper(args._id, {
+                .then( async foundTimer => 
+                    await updateTimerHelper(args._id, {
                         runningSince: null,
                         time: foundTimer.time + (Date.now() - foundTimer.runningSince)
                     })
-                })
+                )
                 .catch(err => {throw err})
         },
 
